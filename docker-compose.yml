@@ -1,0 +1,37 @@
+services:
+  postgres-db:
+    image: postgres:${POSTGRES_VERSION:-17}
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-1}
+      POSTGRES_DB: ${POSTGRES_DB:-system}
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+      POSTGRES_INITDB_ARGS: "--timezone=${TZ:-Asia/Ho_Chi_Minh}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./data/backups:/backups
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  postgres-ui:
+    image: dpage/pgadmin4
+    container_name: postgres-ui
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@vimaru.edu.vn}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-1}
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./data/backups:/backups
+      - ./pgadmin-init.sh:/pgadmin-init.sh
+    ports:
+      - "${PGADMIN_PORT:-5431}:80"
+    depends_on:
+      - postgres-db
+    command: ["/bin/sh", "-c", "echo ✅ Đã chạy command! && /bin/sh /pgadmin-init.sh"]
+
+volumes:
+  postgres-data:
+  pgadmin-data:

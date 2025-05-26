@@ -1,0 +1,90 @@
+version: '3.8'
+services:
+  gotrue:
+    image: supabase/gotrue:v2.148.0
+    container_name: supabase-gotrue
+    restart: always
+    environment:
+      GOTRUE_SITE_URL: http://supabase-rest:3000
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://admin:admin123@pgbouncer:6432/postgres
+      GOTRUE_JWT_SECRET: super-secret-jwt
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: false
+    ports:
+      - "9999:9999"
+    networks:
+      - postgres-net
+
+  rest:
+    image: postgrest/postgrest:v11.2.0
+    container_name: supabase-rest
+    restart: always
+    environment:
+      PGRST_DB_URI: postgres://admin:admin123@pgbouncer:6432/postgres
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: super-secret-jwt
+    ports:
+      - "3000:3000"
+    networks:
+      - postgres-net
+
+  realtime:
+    image: supabase/realtime:v2.29.4
+    container_name: supabase-realtime
+    restart: always
+    environment:
+      DB_HOST: pgbouncer
+      DB_PORT: 6432
+      DB_NAME: postgres
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      PORT: 4000
+      JWT_SECRET: super-secret-jwt
+    ports:
+      - "4000:4000"
+    networks:
+      - postgres-net
+
+  storage:
+    image: supabase/storage-api:v1.22.17
+    container_name: supabase-storage
+    restart: always
+    environment:
+      ANON_KEY: super-secret-jwt
+      SERVICE_KEY: service-role-secret
+      POSTGREST_URL: http://supabase-rest:3000
+      DATABASE_URL: postgres://admin:admin123@pgbouncer:6432/postgres
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_PATH: /var/lib/storage
+    volumes:
+      - storage-data:/var/lib/storage
+    ports:
+      - "5000:5000"
+    networks:
+      - postgres-net
+
+  studio:
+    image: supabase/studio:20240513-d025e0f
+    container_name: supabase-studio
+    restart: always
+    environment:
+      SUPABASE_URL: http://supabase-rest:3000                # ✅ CHỈNH LẠI
+      SUPABASE_ANON_KEY: super-secret-jwt
+      SUPABASE_SERVICE_ROLE_KEY: service-role-secret
+      POSTGRES_PASSWORD: admin123
+      DEFAULT_PROJECT: default
+      STUDIO_PG_META_URL: http://supabase-rest:3000
+    ports:
+      - "8089:3000"
+    networks:
+      - postgres-net
+
+volumes:
+  storage-data:
+
+networks:
+  postgres-net:
+    external: true
+    name: postgres-ha_postgres-net

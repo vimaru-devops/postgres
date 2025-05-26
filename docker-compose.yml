@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres-primary:
     image: postgres:17
@@ -8,13 +6,8 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin123
       POSTGRES_DB: mydb
-    command: >
-      bash -c "
-        docker-entrypoint.sh postgres &
-        sleep 10 &&
-        echo '>>> ALTER REPLICATION ROLE';
-        PGPASSWORD=admin123 psql -U admin -d mydb -c 'ALTER ROLE admin WITH REPLICATION;';
-        wait"
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    command: postgres -c wal_level=replica -c max_wal_senders=10 -c wal_keep_size=64
     volumes:
       - primary-data:/var/lib/postgresql/data
     networks:
@@ -23,7 +16,7 @@ services:
       - "5432:5432"
     restart: always
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "admin"]
+      test: ["CMD-SHELL", "pg_isready -U admin"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -44,17 +37,14 @@ services:
         done &&
         chmod 700 /var/lib/postgresql/data &&
         postgres"
-    depends_on:
-      patch-pg-hba:
-        condition: service_completed_successfully
     volumes:
       - replica1-data:/var/lib/postgresql/data
     networks:
       - postgres-net
     restart: always
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "admin"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 5s
       timeout: 5s
       retries: 5
 
@@ -74,17 +64,41 @@ services:
         done &&
         chmod 700 /var/lib/postgresql/data &&
         postgres"
-    depends_on:
-      patch-pg-hba:
-        condition: service_completed_successfully
     volumes:
       - replica2-data:/var/lib/postgresql/data
     networks:
       - postgres-net
     restart: always
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "admin"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-replica3:
+    image: postgres:17
+    container_name: postgres-replica3
+    user: postgres
+    environment:
+      PGUSER: admin
+      PGPASSWORD: admin123
+    command: >
+      bash -c "
+        rm -rf /var/lib/postgresql/data/* &&
+        until pg_basebackup -h postgres-primary -D /var/lib/postgresql/data -U admin -Fp -Xs -P -R; do 
+          echo '>>> Waiting for primary...'; 
+          sleep 5; 
+        done &&
+        chmod 700 /var/lib/postgresql/data &&
+        postgres"
+    volumes:
+      - replica3-data:/var/lib/postgresql/data
+    networks:
+      - postgres-net
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 5s
       timeout: 5s
       retries: 5
 
@@ -92,7 +106,7 @@ services:
     image: bitnami/pgpool:latest
     container_name: pgpool
     environment:
-      - PGPOOL_BACKEND_NODES=0:postgres-primary:5432:1,1:postgres-replica1:5432:3,2:postgres-replica2:5432:3
+      - PGPOOL_BACKEND_NODES=0:postgres-primary:5432:1,1:postgres-replica1:5432:3,2:postgres-replica2:5432:3,3:postgres-replica3:5432:3
       - PGPOOL_SR_CHECK_USER=admin
       - PGPOOL_SR_CHECK_PASSWORD=admin123
       - PGPOOL_ENABLE_LOAD_BALANCING=yes
@@ -105,71 +119,29 @@ services:
       - PGPOOL_ADMIN_PASSWORD=admin123
     ports:
       - "5433:5432"
-
     depends_on:
       postgres-primary:
         condition: service_healthy
       postgres-replica1:
-        condition: service_started
+        condition: service_healthy
       postgres-replica2:
-        condition: service_started
+        condition: service_healthy
+      postgres-replica3:
+        condition: service_healthy
     networks:
       - postgres-net
     restart: always
     healthcheck:
-      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432", "-U", "admin"]
+      test: ["CMD-SHELL", "PGPASSWORD=admin123 psql -U admin -h localhost -p 5432 -d mydb -c 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  patch-pg-hba:
-    image: postgres:17
-    container_name: patch-pg-hba
-    entrypoint: ["bash", "-c"]
-    command: >
-      "
-      echo '>>> Waiting for postgres-primary to be ready...';
-      for i in {1..20}; do
-        pg_isready -h postgres-primary -U admin && break;
-        sleep 2;
-      done;
-      echo '>>> Patching pg_hba.conf...';
-      echo 'host replication admin 0.0.0.0/0 md5' >> /var/lib/postgresql/data/pg_hba.conf;
-      echo 'host all all 0.0.0.0/0 md5' >> /var/lib/postgresql/data/pg_hba.conf;
-      echo '>>> Done patching pg_hba.conf';
-      "
-    volumes:
-      - primary-data:/var/lib/postgresql/data
-    depends_on:
-      postgres-primary:
-        condition: service_healthy
-    networks:
-      - postgres-net
-    restart: "no"
-
-  pgpool-test:
-    image: postgres:17
-    container_name: pgpool-test
-    entrypoint: ["bash", "-c"]
-    command: >
-      echo ">>> Waiting for Pgpool...";
-      for i in {1..20}; do
-        pg_isready -h pgpool -p 5432 -U admin && break;
-        sleep 2;
-      done;
-    depends_on:
-      - postgres-primary
-      - postgres-replica1
-      - postgres-replica2
-      - pgpool
-    networks:
-      - postgres-net
-    restart: "no"
 
 volumes:
   primary-data:
   replica1-data:
   replica2-data:
+  replica3-data:
 
 networks:
   postgres-net:

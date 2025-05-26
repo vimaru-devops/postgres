@@ -136,6 +136,44 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: pgbouncer
+    environment:
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      DB_NAME: appdb
+      DB_HOST: pgpool
+      DB_PORT: 5432
+      POOL_MODE: transaction
+    ports:
+      - "6432:6432"
+    depends_on:
+      pgpool:
+        condition: service_healthy
+    networks:
+      - postgres-net
+    command: >
+      sh -c "
+        echo '[databases]' > /etc/pgbouncer/pgbouncer.ini &&
+        echo \"${DB_NAME:-mydb} = host=${DB_HOST:-pgpool} port=${DB_PORT:-5432} dbname=${DB_NAME:-mydb} user=${DB_USER:-admin} password=${DB_PASSWORD:-admin123}\" >> /etc/pgbouncer/pgbouncer.ini &&
+        echo '[pgbouncer]' >> /etc/pgbouncer/pgbouncer.ini &&
+        echo 'listen_addr = 0.0.0.0' >> /etc/pgbouncer/pgbouncer.ini &&
+        echo 'listen_port = 6432' >> /etc/pgbouncer/pgbouncer.ini &&
+        echo 'auth_type = trust' >> /etc/pgbouncer/pgbouncer.ini &&
+        echo 'auth_file = /etc/pgbouncer/userlist.txt' >> /etc/pgbouncer/pgbouncer.ini &&
+        echo \"pool_mode = ${POOL_MODE:-transaction}\" >> /etc/pgbouncer/pgbouncer.ini &&
+        echo 'max_client_conn = 100' >> /etc/pgbouncer/pgbouncer.ini &&
+        echo 'default_pool_size = 20' >> /etc/pgbouncer/pgbouncer.ini &&
+        echo \"\\\"${DB_USER:-admin}\\\" \\\"${DB_PASSWORD:-admin123}\\\"\" > /etc/pgbouncer/userlist.txt &&
+        exec pgbouncer /etc/pgbouncer/pgbouncer.ini"
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -h localhost -p 6432"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   primary-data:

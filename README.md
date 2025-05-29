@@ -1,25 +1,42 @@
-# pgAdmin + PostgreSQL Docker Stack with Backup Symlink
+# PostgreSQL HA Docker Stack with Pgpool-II & PgBouncer
 
 ## ✅ Features
+Triển khai hệ thống PostgreSQL với khả năng **High Availability (HA)** sử dụng:
+- **PostgreSQL 17** với 1 node primary và nhiều replica
+- **Pgpool-II** để cân bằng tải, kiểm tra sức khỏe, failover
+- **PgBouncer** để quản lý kết nối
+- Docker Compose & Portainer
 
-- PostgreSQL with configurable version and timezone
-- pgAdmin 4 auto-creates symlink to `/backups`
-- Can restore `.backup` files directly from pgAdmin UI
+## 📦 Thành phần hệ thống
+| Service            | Vai trò                          |
+|--------------------|----------------------------------|
+| `postgres-primary` | Cơ sở dữ liệu chính (writable)   |
+| `postgres-replica` | Bản sao chỉ đọc (read-only)      |
+| `pgpool`           | Load balancing, healthcheck      |
+| `pgbouncer`        | Connection pooling               |
 
 ## 🧾 Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| POSTGRES_VERSION | 17 | PostgreSQL version |
-| POSTGRES_USER | admin | DB username |
-| POSTGRES_PASSWORD | 1 | DB password |
-| POSTGRES_DB | system | DB name |
-| TZ | Asia/Ho_Chi_Minh | Timezone |
-| POSTGRES_PORT | 5432 | Host port for PostgreSQL |
-| PGADMIN_EMAIL | admin@vimaru.edu.vn | pgAdmin login email |
-| PGADMIN_PASSWORD | 1 | pgAdmin password |
-| PGADMIN_PORT | 5431 | Host port for pgAdmin |
-| PGADMIN_USER_DIR | admin_vimaru.edu.vn | pgAdmin user folder |
+| `POSTGRES_USER` | `admin` | Tài khoản DB |
+| `POSTGRES_PASSWORD` | `admin123` | Mật khẩu DB |
+| `POSTGRES_DB` | `mydb` | Tên cơ sở dữ liệu |
+| `REPLICA_USER` | `admin` |
+| `REPLICA_PASSWORD` | `admin123` |
+| `PGPOOL_ADMIN_USER` | `admin` |
+| `PGPOOL_ADMIN_PASS` | `admin123` |
+| `PGPOOL_POSTGRES_USER` | `admin` |
+| `PGPOOL_POSTGRES_PASS` | `admin123` |
+| `PGPOOL_BACKEND_NODES` | `0:postgres-primary:5432:1,...` |
+| `PGPOOL_SR_CHECK_USER` | `admin` |
+| `PGPOOL_SR_CHECK_PASSWORD` | `admin123` |
+| `DB_NAME` | `appdb` |
+| `DB_USER` | `admin` |
+| `DB_PASSWORD` | `admin123` |
+| `DB_HOST` | `pgpool` |
+| `DB_PORT` | `5432` |
+| `POOL_MODE` | `transaction` |
 
 ## 🚀 Usage
 

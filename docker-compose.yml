@@ -3,9 +3,9 @@ services:
     image: postgres:17
     container_name: postgres-primary
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
-      POSTGRES_DB: mydb
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      POSTGRES_DB: ${POSTGRES_DB:-mydb}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     command: postgres -c wal_level=replica -c max_wal_senders=10 -c wal_keep_size=64
     volumes:
@@ -26,8 +26,8 @@ services:
     container_name: postgres-replica1
     user: postgres
     environment:
-      PGUSER: admin
-      PGPASSWORD: admin123
+      PGUSER: ${REPLICA_USER:-admin}
+      PGPASSWORD: ${REPLICA_PASSWORD:-admin123}
     command: >
       bash -c "
         rm -rf /var/lib/postgresql/data/* &&
@@ -53,8 +53,8 @@ services:
     container_name: postgres-replica2
     user: postgres
     environment:
-      PGUSER: admin
-      PGPASSWORD: admin123
+      PGUSER: ${REPLICA_USER:-admin}
+      PGPASSWORD: ${REPLICA_PASSWORD:-admin123}
     command: >
       bash -c "
         rm -rf /var/lib/postgresql/data/* &&
@@ -80,8 +80,8 @@ services:
     container_name: postgres-replica3
     user: postgres
     environment:
-      PGUSER: admin
-      PGPASSWORD: admin123
+      PGUSER: ${REPLICA_USER:-admin}
+      PGPASSWORD: ${REPLICA_PASSWORD:-admin123}
     command: >
       bash -c "
         rm -rf /var/lib/postgresql/data/* &&
@@ -107,16 +107,16 @@ services:
     container_name: pgpool
     environment:
       - PGPOOL_BACKEND_NODES=0:postgres-primary:5432:1,1:postgres-replica1:5432:3,2:postgres-replica2:5432:3,3:postgres-replica3:5432:3
-      - PGPOOL_SR_CHECK_USER=admin
-      - PGPOOL_SR_CHECK_PASSWORD=admin123
+      - PGPOOL_SR_CHECK_USER=${PGPOOL_SR_CHECK_USER:-admin}
+      - PGPOOL_SR_CHECK_PASSWORD=${PGPOOL_SR_CHECK_PASSWORD:-admin123}
       - PGPOOL_ENABLE_LOAD_BALANCING=yes
       - PGPOOL_LOAD_BALANCE_BY_SESSION=yes
       - PGPOOL_STATEMENT_LEVEL_LOAD_BALANCE=no
       - PGPOOL_DISABLE_LOAD_BALANCE_ON_WRITE=off
-      - PGPOOL_POSTGRES_USERNAME=admin
-      - PGPOOL_POSTGRES_PASSWORD=admin123
-      - PGPOOL_ADMIN_USERNAME=admin
-      - PGPOOL_ADMIN_PASSWORD=admin123
+      - PGPOOL_POSTGRES_USERNAME=${PGPOOL_POSTGRES_USERNAME:-admin}
+      - PGPOOL_POSTGRES_PASSWORD=${PGPOOL_POSTGRES_PASSWORD:-admin123}
+      - PGPOOL_ADMIN_USERNAME=${PGPOOL_ADMIN_USERNAME:-admin}
+      - PGPOOL_ADMIN_PASSWORD=${PGPOOL_ADMIN_PASSWORD:-admin123}
     ports:
       - "5433:5432"
     depends_on:
@@ -141,12 +141,12 @@ services:
     image: edoburu/pgbouncer:latest
     container_name: pgbouncer
     environment:
-      DB_USER: admin
-      DB_PASSWORD: admin123
-      DB_NAME: appdb
-      DB_HOST: pgpool
-      DB_PORT: 5432
-      POOL_MODE: transaction
+      DB_USER: ${DB_USER:-admin}
+      DB_PASSWORD: ${DB_PASSWORD:-admin123}
+      DB_NAME: ${DB_NAME:-mydb}
+      DB_HOST: ${DB_HOST:-pgpool}
+      DB_PORT: ${DB_PORT:-5432}
+      POOL_MODE: ${POOL_MODE:-transaction}
     ports:
       - "6432:6432"
     depends_on:

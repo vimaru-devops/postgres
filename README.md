@@ -7,6 +7,22 @@ Triển khai hệ thống PostgreSQL với khả năng **High Availability (HA)*
 - **PgBouncer** để quản lý kết nối
 - Docker Compose & Portainer
 
+# PostgreSQL HA với Repmgr + Pgpool
+
+## Mô hình
+
+```plaintext
++--------------------+
+| Application / App  |
++---------+----------+
+          |
+          v
++------------------+          +-------------------+
+| Pgpool           | <---->   | PostgreSQL Cluster |
+| Port 15436       |          | Primary + Replicas |
++------------------+          +-------------------+
+```
+
 ## 📦 Thành phần hệ thống
 | Service            | Vai trò                          |
 |--------------------|----------------------------------|
@@ -17,32 +33,34 @@ Triển khai hệ thống PostgreSQL với khả năng **High Availability (HA)*
 
 ## 🧾 Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `POSTGRES_USER` | `admin` | Tài khoản DB |
-| `POSTGRES_PASSWORD` | `admin123` | Mật khẩu DB |
-| `POSTGRES_DB` | `mydb` | Tên cơ sở dữ liệu |
-| `REPLICA_USER` | `admin` |
-| `REPLICA_PASSWORD` | `admin123` |
-| `PGPOOL_ADMIN_USER` | `admin` |
-| `PGPOOL_ADMIN_PASS` | `admin123` |
-| `PGPOOL_POSTGRES_USER` | `admin` |
-| `PGPOOL_POSTGRES_PASS` | `admin123` |
-| `PGPOOL_BACKEND_NODES` | `0:postgres-primary:5432:1,...` |
-| `PGPOOL_SR_CHECK_USER` | `admin` |
-| `PGPOOL_SR_CHECK_PASSWORD` | `admin123` |
-| `DB_NAME` | `appdb` |
-| `DB_USER` | `admin` |
-| `DB_PASSWORD` | `admin123` |
-| `DB_HOST` | `pgpool` |
-| `DB_PORT` | `5432` |
-| `POOL_MODE` | `transaction` |
+```bash
+docker compose --env-file .env up -d
+docker logs postgres-ui
+```
 
 ## 🚀 Usage
 
 ```bash
-docker compose --env-file .env up -d
-docker logs postgres-ui
+.env
+```
+
+## 🚀 Connect
+
+```bash
+host=pgpool
+port=15436
+user=admin
+password=admin123
+dbname=mydb
+
+```
+
+## 🚀 Test
+
+```bash
+select client_addr, state, sync_state from pg_stat_replication;
+
+SELECT inet_server_addr(), pg_is_in_recovery();
 ```
 
 ## 🔁 Restore in pgAdmin

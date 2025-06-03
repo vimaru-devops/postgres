@@ -1,124 +1,152 @@
+version: '3.8'
+
 services:
   postgres-primary:
-    image: postgres:17
+    image: bitnami/postgresql-repmgr:17
     container_name: postgres-primary
+    restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
-      POSTGRES_DB: ${POSTGRES_DB:-mydb}
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
-    command: postgres -c wal_level=replica -c max_wal_senders=10 -c wal_keep_size=64
+      - POSTGRESQL_POSTGRES_PASSWORD=postgres123
+      - POSTGRESQL_USERNAME=admin
+      - POSTGRESQL_PASSWORD=admin123
+      - POSTGRESQL_DATABASE=mydb
+      - POSTGRESQL_REPMGR_PASSWORD=repmgrpass
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repmgr
+      - POSTGRESQL_REPLICATION_PASSWORD=repmgrpass
+      - REPMGR_PARTNER_NODES=postgres-primary,postgres-replica1,postgres-replica2,postgres-replica3
+      - REPMGR_PRIMARY_ROLE=master
+      - REPMGR_PRIMARY_HOST=postgres-primary
+      - REPMGR_NODE_ID=1
+      - REPMGR_NODE_NAME=postgres-primary-1
+      - REPMGR_NODE_NETWORK_NAME=postgres-primary
+      - REPMGR_USERNAME=repmgr
+      - REPMGR_PASSWORD=repmgrpass
+      - REPMGR_CONNECT_TIMEOUT=10
     volumes:
-      - primary-data:/var/lib/postgresql/data
+      - postgres-primary-data:/bitnami/postgresql
+      - /data/backups:/bitnami/postgresql/backups
     networks:
       - postgres-net
     ports:
-      - "5432:5432"
-    restart: always
+      - "15435:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
   postgres-replica1:
-    image: postgres:17
+    image: bitnami/postgresql-repmgr:17
     container_name: postgres-replica1
-    user: postgres
+    restart: always
     environment:
-      PGUSER: ${REPLICA_USER:-admin}
-      PGPASSWORD: ${REPLICA_PASSWORD:-admin123}
-    command: >
-      bash -c "
-        rm -rf /var/lib/postgresql/data/* &&
-        until pg_basebackup -h postgres-primary -D /var/lib/postgresql/data -U admin -Fp -Xs -P -R; do 
-          echo '>>> Waiting for primary...'; 
-          sleep 5; 
-        done &&
-        chmod 700 /var/lib/postgresql/data &&
-        postgres"
+      - POSTGRESQL_POSTGRES_PASSWORD=postgres123
+      - POSTGRESQL_USERNAME=admin
+      - POSTGRESQL_PASSWORD=admin123
+      - POSTGRESQL_DATABASE=mydb
+      - POSTGRESQL_REPMGR_PASSWORD=repmgrpass
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repmgr
+      - POSTGRESQL_REPLICATION_PASSWORD=repmgrpass
+      - REPMGR_PARTNER_NODES=postgres-primary,postgres-replica1,postgres-replica2,postgres-replica3
+      - REPMGR_PRIMARY_ROLE=standby
+      - REPMGR_PRIMARY_HOST=postgres-primary
+      - REPMGR_NODE_ID=2
+      - REPMGR_NODE_NAME=postgres-replica-1
+      - REPMGR_NODE_NETWORK_NAME=postgres-replica1
+      - REPMGR_USERNAME=repmgr
+      - REPMGR_PASSWORD=repmgrpass
+      - REPMGR_CONNECT_TIMEOUT=10
     volumes:
-      - replica1-data:/var/lib/postgresql/data
+      - postgres-replica1-data:/bitnami/postgresql
     networks:
       - postgres-net
-    restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
   postgres-replica2:
-    image: postgres:17
+    image: bitnami/postgresql-repmgr:17
     container_name: postgres-replica2
-    user: postgres
+    restart: always
     environment:
-      PGUSER: ${REPLICA_USER:-admin}
-      PGPASSWORD: ${REPLICA_PASSWORD:-admin123}
-    command: >
-      bash -c "
-        rm -rf /var/lib/postgresql/data/* &&
-        until pg_basebackup -h postgres-primary -D /var/lib/postgresql/data -U admin -Fp -Xs -P -R; do 
-          echo '>>> Waiting for primary...'; 
-          sleep 5; 
-        done &&
-        chmod 700 /var/lib/postgresql/data &&
-        postgres"
+      - POSTGRESQL_POSTGRES_PASSWORD=postgres123
+      - POSTGRESQL_USERNAME=admin
+      - POSTGRESQL_PASSWORD=admin123
+      - POSTGRESQL_DATABASE=mydb
+      - POSTGRESQL_REPMGR_PASSWORD=repmgrpass
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repmgr
+      - POSTGRESQL_REPLICATION_PASSWORD=repmgrpass
+      - REPMGR_PARTNER_NODES=postgres-primary,postgres-replica1,postgres-replica2,postgres-replica3
+      - REPMGR_PRIMARY_ROLE=standby
+      - REPMGR_PRIMARY_HOST=postgres-primary
+      - REPMGR_NODE_ID=3
+      - REPMGR_NODE_NAME=postgres-replica-2
+      - REPMGR_NODE_NETWORK_NAME=postgres-replica2
+      - REPMGR_USERNAME=repmgr
+      - REPMGR_PASSWORD=repmgrpass
+      - REPMGR_CONNECT_TIMEOUT=10
     volumes:
-      - replica2-data:/var/lib/postgresql/data
+      - postgres-replica2-data:/bitnami/postgresql
     networks:
       - postgres-net
-    restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
   postgres-replica3:
-    image: postgres:17
+    image: bitnami/postgresql-repmgr:17
     container_name: postgres-replica3
-    user: postgres
+    restart: always
     environment:
-      PGUSER: ${REPLICA_USER:-admin}
-      PGPASSWORD: ${REPLICA_PASSWORD:-admin123}
-    command: >
-      bash -c "
-        rm -rf /var/lib/postgresql/data/* &&
-        until pg_basebackup -h postgres-primary -D /var/lib/postgresql/data -U admin -Fp -Xs -P -R; do 
-          echo '>>> Waiting for primary...'; 
-          sleep 5; 
-        done &&
-        chmod 700 /var/lib/postgresql/data &&
-        postgres"
+      - POSTGRESQL_POSTGRES_PASSWORD=postgres123
+      - POSTGRESQL_USERNAME=admin
+      - POSTGRESQL_PASSWORD=admin123
+      - POSTGRESQL_DATABASE=mydb
+      - POSTGRESQL_REPMGR_PASSWORD=repmgrpass
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repmgr
+      - POSTGRESQL_REPLICATION_PASSWORD=repmgrpass
+      - REPMGR_PARTNER_NODES=postgres-primary,postgres-replica1,postgres-replica2,postgres-replica3
+      - REPMGR_PRIMARY_ROLE=standby
+      - REPMGR_PRIMARY_HOST=postgres-primary
+      - REPMGR_NODE_ID=4
+      - REPMGR_NODE_NAME=postgres-replica-3
+      - REPMGR_NODE_NETWORK_NAME=postgres-replica3
+      - REPMGR_USERNAME=repmgr
+      - REPMGR_PASSWORD=repmgrpass
+      - REPMGR_CONNECT_TIMEOUT=10
     volumes:
-      - replica3-data:/var/lib/postgresql/data
+      - postgres-replica3-data:/bitnami/postgresql
     networks:
       - postgres-net
-    restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
   pgpool:
-    image: bitnami/pgpool:latest
+    image: bitnami/pgpool:4
     container_name: pgpool
-    environment:
-      - PGPOOL_BACKEND_NODES=0:postgres-primary:5432:1,1:postgres-replica1:5432:3,2:postgres-replica2:5432:3,3:postgres-replica3:5432:3
-      - PGPOOL_SR_CHECK_USER=${PGPOOL_SR_CHECK_USER:-admin}
-      - PGPOOL_SR_CHECK_PASSWORD=${PGPOOL_SR_CHECK_PASSWORD:-admin123}
-      - PGPOOL_ENABLE_LOAD_BALANCING=yes
-      - PGPOOL_LOAD_BALANCE_BY_SESSION=yes
-      - PGPOOL_STATEMENT_LEVEL_LOAD_BALANCE=no
-      - PGPOOL_DISABLE_LOAD_BALANCE_ON_WRITE=off
-      - PGPOOL_POSTGRES_USERNAME=${PGPOOL_POSTGRES_USERNAME:-admin}
-      - PGPOOL_POSTGRES_PASSWORD=${PGPOOL_POSTGRES_PASSWORD:-admin123}
-      - PGPOOL_ADMIN_USERNAME=${PGPOOL_ADMIN_USERNAME:-admin}
-      - PGPOOL_ADMIN_PASSWORD=${PGPOOL_ADMIN_PASSWORD:-admin123}
+    restart: always
     ports:
-      - "5433:5432"
+      - "15436:5432"
+    environment:
+      - PGPOOL_BACKEND_NODES=0:postgres-primary:5432,1:postgres-replica1:5432,2:postgres-replica2:5432,3:postgres-replica3:5432
+      - PGPOOL_SR_CHECK_USER=repmgr
+      - PGPOOL_SR_CHECK_PASSWORD=repmgrpass
+      - PGPOOL_ADMIN_USERNAME=admin
+      - PGPOOL_ADMIN_PASSWORD=admin123
+      - PGPOOL_POSTGRES_USERNAME=admin
+      - PGPOOL_POSTGRES_PASSWORD=admin123
+      - PGPOOL_ENABLE_LOAD_BALANCING=yes
     depends_on:
       postgres-primary:
         condition: service_healthy
@@ -130,56 +158,13 @@ services:
         condition: service_healthy
     networks:
       - postgres-net
-    restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "PGPASSWORD=admin123 psql -U admin -h localhost -p 5432 -d mydb -c 'SELECT 1' || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      
-  pgbouncer:
-    image: edoburu/pgbouncer:latest
-    container_name: pgbouncer
-    environment:
-      DB_USER: ${DB_USER:-admin}
-      DB_PASSWORD: ${DB_PASSWORD:-admin123}
-      DB_NAME: ${DB_NAME:-mydb}
-      DB_HOST: ${DB_HOST:-pgpool}
-      DB_PORT: ${DB_PORT:-5432}
-      POOL_MODE: ${POOL_MODE:-transaction}
-    ports:
-      - "6432:6432"
-    depends_on:
-      pgpool:
-        condition: service_healthy
-    networks:
-      - postgres-net
-    command: >
-      sh -c "
-        echo '[databases]' > /etc/pgbouncer/pgbouncer.ini &&
-        echo \"${DB_NAME:-mydb} = host=${DB_HOST:-pgpool} port=${DB_PORT:-5432} dbname=${DB_NAME:-mydb} user=${DB_USER:-admin} password=${DB_PASSWORD:-admin123}\" >> /etc/pgbouncer/pgbouncer.ini &&
-        echo '[pgbouncer]' >> /etc/pgbouncer/pgbouncer.ini &&
-        echo 'listen_addr = 0.0.0.0' >> /etc/pgbouncer/pgbouncer.ini &&
-        echo 'listen_port = 6432' >> /etc/pgbouncer/pgbouncer.ini &&
-        echo 'auth_type = trust' >> /etc/pgbouncer/pgbouncer.ini &&
-        echo 'auth_file = /etc/pgbouncer/userlist.txt' >> /etc/pgbouncer/pgbouncer.ini &&
-        echo \"pool_mode = ${POOL_MODE:-transaction}\" >> /etc/pgbouncer/pgbouncer.ini &&
-        echo 'max_client_conn = 100' >> /etc/pgbouncer/pgbouncer.ini &&
-        echo 'default_pool_size = 20' >> /etc/pgbouncer/pgbouncer.ini &&
-        echo \"\\\"${DB_USER:-admin}\\\" \\\"${DB_PASSWORD:-admin123}\\\"\" > /etc/pgbouncer/userlist.txt &&
-        exec pgbouncer /etc/pgbouncer/pgbouncer.ini"
-    restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -h localhost -p 6432"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 volumes:
-  primary-data:
-  replica1-data:
-  replica2-data:
-  replica3-data:
+  postgres-primary-data:
+  postgres-replica1-data:
+  postgres-replica2-data:
+  postgres-replica3-data:
 
 networks:
   postgres-net:
+    external: true

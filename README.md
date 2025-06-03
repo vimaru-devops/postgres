@@ -58,6 +58,10 @@ dbname=mydb
 ## 🚀 Test
 
 ```bash
+SHOW password_encryption;
+
+SELECT rolname, rolcanlogin, rolpassword FROM pg_authid WHERE rolpassword IS NOT NULL;
+
 select client_addr, state, sync_state from pg_stat_replication;
 
 SELECT inet_server_addr(), pg_is_in_recovery();

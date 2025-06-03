@@ -6,23 +6,26 @@ services:
     container_name: postgres-primary
     restart: always
     environment:
-      - POSTGRESQL_POSTGRES_PASSWORD=postgres123
-      - POSTGRESQL_USERNAME=admin
-      - POSTGRESQL_PASSWORD=admin123
-      - POSTGRESQL_DATABASE=mydb
-      - POSTGRESQL_REPMGR_PASSWORD=repmgrpass
+      - POSTGRESQL_POSTGRES_PASSWORD=${POSTGRESQL_POSTGRES_PASSWORD:-postgres123}
+      - POSTGRESQL_USERNAME=${POSTGRESQL_USERNAME:-admin}
+      - POSTGRESQL_PASSWORD=${POSTGRESQL_PASSWORD:-admin123}
+      - POSTGRESQL_DATABASE=${POSTGRESQL_DATABASE:-mydb}
+      - POSTGRESQL_REPMGR_PASSWORD=${POSTGRESQL_REPMGR_PASSWORD:-repmgrpass}
       - POSTGRESQL_REPLICATION_MODE=master
-      - POSTGRESQL_REPLICATION_USER=repmgr
-      - POSTGRESQL_REPLICATION_PASSWORD=repmgrpass
+      - POSTGRESQL_REPLICATION_USER=${POSTGRESQL_REPLICATION_USER:-repmgr}
+      - POSTGRESQL_REPLICATION_PASSWORD=${POSTGRESQL_REPLICATION_PASSWORD:-repmgrpass}
       - REPMGR_PARTNER_NODES=postgres-primary,postgres-replica1,postgres-replica2,postgres-replica3
       - REPMGR_PRIMARY_ROLE=master
       - REPMGR_PRIMARY_HOST=postgres-primary
       - REPMGR_NODE_ID=1
       - REPMGR_NODE_NAME=postgres-primary-1
       - REPMGR_NODE_NETWORK_NAME=postgres-primary
-      - REPMGR_USERNAME=repmgr
-      - REPMGR_PASSWORD=repmgrpass
-      - REPMGR_CONNECT_TIMEOUT=10
+      - REPMGR_USERNAME=${POSTGRESQL_REPLICATION_USER:-repmgr}
+      - REPMGR_PASSWORD=${POSTGRESQL_REPLICATION_PASSWORD:-repmgrpass}
+      - REPMGR_CONNECT_TIMEOUT=30
+      #- REPMGR_LOG_LEVEL=${REPMGR_LOG_LEVEL:-INFO}
+      #- POSTGRESQL_MAX_CONNECTIONS=${POSTGRESQL_MAX_CONNECTIONS:-1000}
+      #- POSTGRESQL_SHARED_BUFFERS=${POSTGRESQL_SHARED_BUFFERS:-256MB}
     volumes:
       - postgres-primary-data:/bitnami/postgresql
       - /data/backups:/bitnami/postgresql/backups

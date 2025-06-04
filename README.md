@@ -67,6 +67,24 @@ select client_addr, state, sync_state from pg_stat_replication;
 SELECT inet_server_addr(), pg_is_in_recovery();
 ```
 
+## 🚀 Backup
+
+```bash
+sudo chown 1001:1001 /data/backups
+sudo chmod 755 /data/backups
+
+docker exec -it postgres-primary bash
+pg_dump -U postgres -F c -b -v -f /backups/postgres_$(date +%Y%m%d_%H%M%S).backup postgres
+PGPASSWORD=postgres123  pg_dump -U postgres -F c -b -v -f /backups/postgres_$(date +%Y%m%d_%H%M%S).backup postgres >> /backups/backup.log 2>&1
+```
+
+## 🔁 Restore in terminal
+
+```
+/usr/local/bin/pg_restore.sh /data/backups/postgres_20240603_020000.backup
+```
+
+
 ## 🔁 Restore in pgAdmin
 
 In the Restore dialog, browse to:

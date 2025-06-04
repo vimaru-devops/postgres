@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  # === PGBouncer ===
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: pgbouncer
+    restart: always
+    ports:
+      - "${PGBOUNCER_PORT:-6544}:5432"
+    environment:
+      - AUTH_TYPE=scram-sha-256
+      - DB_HOST=pgpool
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-admin}
+      - DB_PASSWORD=${DB_PASSWORD:-admin123}
+      - DB_NAME=${DB_NAME:-postgres}
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=5000
+      - DEFAULT_POOL_SIZE=2000
+      - SERVER_RESET_QUERY=DISCARD ALL
+    networks:
+      - postgres-net
+
+  # === PGBackups ===
+  pgbackups:
+    image: prodrigestivill/postgres-backup-local
+    container_name: pgbackups
+    environment:
+      POSTGRES_HOST: postgres-primary
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${DB_NAME:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      BACKUP_DIR: ${BACKUP_DIR:-/backups}
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-@daily} #@daily = mỗi ngày 00:00
+      BACKUP_KEEP_DAYS: 7                         #7 ngày gần nhất
+      BACKUP_KEEP_WEEKS: 4                        #4 tuần gần nhất
+      BACKUP_KEEP_MONTHS: 6                       #6 tháng gần nhất
+      HEALTHCHECK_PORT: 8080
+    volumes:
+      - /data/backups:/backups
+    networks:
+      - postgres-net
+    restart: unless-stopped
+
+# === VOLUMES ===
+volumes:
+  pgbouncer:
+
+# === NETWORKS ===
+networks:
+  postgres-net:
+    external: true

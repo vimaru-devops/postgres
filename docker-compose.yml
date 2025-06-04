@@ -32,7 +32,7 @@ services:
     networks:
       - postgres-net
     ports:
-      - "${POSTGRES_PORT:-15435}:5432"
+      - "${POSTGRES_PRIMARY_PORT:-5435}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -66,7 +66,6 @@ services:
       #- POSTGRESQL_SHARED_BUFFERS=${POSTGRESQL_SHARED_BUFFERS:-256MB}
     volumes:
       - postgres-replica1-data:/bitnami/postgresql
-      - /data/backups:/backups
     networks:
       - postgres-net
     healthcheck:
@@ -102,7 +101,6 @@ services:
       #- POSTGRESQL_SHARED_BUFFERS=${POSTGRESQL_SHARED_BUFFERS:-256MB}
     volumes:
       - postgres-replica2-data:/bitnami/postgresql
-      - /data/backups:/backups
     networks:
       - postgres-net
     healthcheck:
@@ -138,7 +136,6 @@ services:
       #- POSTGRESQL_SHARED_BUFFERS=${POSTGRESQL_SHARED_BUFFERS:-256MB}
     volumes:
       - postgres-replica3-data:/bitnami/postgresql
-      - /data/backups:/backups
     networks:
       - postgres-net
     healthcheck:
@@ -152,7 +149,7 @@ services:
     container_name: pgpool
     restart: always
     ports:
-      - "${PGPOOL_PORT:-15436}:5432"
+      - "${PGPOOL_PORT:-5436}:5432"
     environment:
       - PGPOOL_BACKEND_NODES=0:postgres-primary:5432,1:postgres-replica1:5432,2:postgres-replica2:5432,3:postgres-replica3:5432
       - PGPOOL_SR_CHECK_USER=${REPMGR_USERNAME:-repmgr}
@@ -173,12 +170,32 @@ services:
         condition: service_healthy
     networks:
       - postgres-net
+      
+  # === PGAdmin ===
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@vimaru.edu.vn}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin123}
+    ports:
+      - "${PGADMIN_PORT:-5438}:80"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+      - /data/backups:/backups
+      # /data/pgadmin-init.sh:/pgadmin-init.sh  # 🆕 mount script
+    depends_on:
+      - pgpool
+    networks:
+      - postgres-net
+    restart: always
 
 volumes:
   postgres-primary-data:
   postgres-replica1-data:
   postgres-replica2-data:
   postgres-replica3-data:
+  pgadmin:
 
 networks:
   postgres-net:

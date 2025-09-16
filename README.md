@@ -12,15 +12,15 @@ Triển khai hệ thống PostgreSQL với khả năng **High Availability (HA)*
 ## Mô hình
 
 ```plaintext
-+--------------------+
-| Application / App  |
-+---------+----------+
-          |
-          v
-+------------------+          +-------------------+
-| Pgpool           | <---->   | PostgreSQL Cluster |
-| Port 15436       |          | Primary + Replicas |
-+------------------+          +-------------------+
+Clients
+   |
+HAProxy (frontend, VIP, port 6432)
+   |
++-------------------+
+|                   |
+Pgpool1 (5432)   Pgpool2 (5432)
+|                   |
+PostgreSQL cluster (1 primary + N replicas)
 ```
 
 ## 📦 Thành phần hệ thống
@@ -48,7 +48,7 @@ docker logs postgres-ui
 
 ```bash
 host=pgpool
-port=15436
+port=5436
 user=admin
 password=admin123
 dbname=mydb
@@ -63,8 +63,6 @@ SHOW password_encryption;
 SELECT rolname, rolcanlogin, rolpassword FROM pg_authid WHERE rolpassword IS NOT NULL;
 
 select client_addr, state, sync_state from pg_stat_replication;
-
-SELECT inet_server_addr(), pg_is_in_recovery();
 ```
 
 ## 🚀 Backup
@@ -84,6 +82,21 @@ PGPASSWORD=postgres123  pg_dump -U postgres -F c -b -v -f /backups/postgres_$(da
 /usr/local/bin/pg_restore.sh /data/backups/postgres_20240603_020000.backup
 ```
 
+## 🚀 Account for PgBouncer
+
+```sql
+-- Tạo user cho PgBouncer:
+BEGIN;
+SET password_encryption = 'md5';
+CREATE ROLE pgbouncer_user LOGIN PASSWORD 'PgbouncerSecret123!';
+COMMIT;
+
+-- Grant CONNECT vào database postgres
+GRANT CONNECT ON DATABASE postgres TO pgbouncer_admin;
+
+-- Reset lại password_encryption (nếu muốn):
+RESET password_encryption;
+```
 
 ## 🔁 Restore in pgAdmin
 

@@ -9,18 +9,23 @@ services:
     ports:
       - "${PGBOUNCER_PORT:-6544}:5432"
     environment:
-      - AUTH_TYPE=scram-sha-256
+      - AUTH_TYPE=md5 # Client → PgBouncer
       - DB_HOST=pgpool
       - DB_PORT=5432
-      - DB_USER=${DB_USER:-admin}
-      - DB_PASSWORD=${DB_PASSWORD:-admin123}
+      #- DB_USER=${DB_USER:-pgbouncer_admin} # PgBouncer → PgPool
+      #- DB_PASSWORD=${DB_PASSWORD:-admin@VMUdaotao2025}
       - DB_NAME=${DB_NAME:-postgres}
-      - POOL_MODE=transaction
+      - POOL_MODE=session
       - MAX_CLIENT_CONN=5000
       - DEFAULT_POOL_SIZE=2000
       - SERVER_RESET_QUERY=DISCARD ALL
+      - ADMIN_USERS=pgbouncer_admin
     networks:
       - postgres-net
+    volumes:
+      - pgbouncer:/etc/pgbouncer
+    command: >
+      sh -c 'echo "\"pgbouncer_admin\" \"admin@VMUdaotao2025\"" > /etc/pgbouncer/userlist.txt && exec /entrypoint.sh'
 
   # === PGBackups ===
   pgbackups:
